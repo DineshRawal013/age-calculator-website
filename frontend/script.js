@@ -1,84 +1,32 @@
-const dobInput = document.getElementById("dob");
-const calculateBtn = document.getElementById("calculateBtn");
-const result = document.getElementById("result");
-const error = document.getElementById("error");
+const express = require("express");
+const cors = require("cors");
 
-const yearsEl = document.getElementById("years");
-const monthsEl = document.getElementById("months");
-const daysEl = document.getElementById("days");
+const app = express();
+const port = 3000;
 
-const totalDaysEl = document.getElementById("totalDays");
-const totalHoursEl = document.getElementById("totalHours");
-const totalMinutesEl = document.getElementById("totalMinutes");
-const totalSecondsEl = document.getElementById("totalSeconds");
+app.use(cors());
+app.use(express.json());
 
-const liveHoursEl = document.getElementById("liveHours");
-const liveMinutesEl = document.getElementById("liveMinutes");
-const liveSecondsEl = document.getElementById("liveSeconds");
-
-const dobDisplayEl = document.getElementById("dobDisplay");
-const currentDateTimeEl = document.getElementById("currentDateTime");
-
-dobInput.max = new Date().toISOString().split("T")[0];
-
-calculateBtn.addEventListener("click", calculateAge);
-dobInput.addEventListener("change", calculateAge);
-
-function calculateAge() {
-  const dobValue = dobInput.value;
-
-  if (!dobValue) {
-    showError("Please select your date of birth.");
-    return;
-  }
-
-  const dob = new Date(dobValue);
+function calculateAgeDetailed(dateOfBirth) {
+  const dob = new Date(dateOfBirth);
   const now = new Date();
 
-  if (dob > now) {
-    showError("Date of birth cannot be in the future.");
-    return;
+  if (Number.isNaN(dob.getTime())) {
+    throw new Error("Invalid date format. Use YYYY-MM-DD");
   }
 
-  hideError();
-  result.classList.remove("hidden");
+  if (dob > now) {
+    throw new Error("Date of birth cannot be in the future.");
+  }
 
-  const age = getAgeParts(dob, now);
-  const totalSeconds = Math.floor((now.getTime() - dob.getTime()) / 1000);
-
-  yearsEl.textContent = age.years;
-  monthsEl.textContent = age.months;
-  daysEl.textContent = age.days;
-
-  totalDaysEl.textContent = Math.floor(totalSeconds / 86400).toLocaleString();
-  totalHoursEl.textContent = Math.floor(totalSeconds / 3600).toLocaleString();
-  totalMinutesEl.textContent = Math.floor(totalSeconds / 60).toLocaleString();
-  totalSecondsEl.textContent = totalSeconds.toLocaleString();
-
-  dobDisplayEl.textContent = dob.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric"
-  });
-
-  updateLiveAge(dob);
-  updateCurrentTime();
-
-  setInterval(() => {
-    updateLiveAge(dob);
-    updateCurrentTime();
-  }, 1000);
-}
-
-function getAgeParts(dob, now) {
   let years = now.getFullYear() - dob.getFullYear();
   let months = now.getMonth() - dob.getMonth();
   let days = now.getDate() - dob.getDate();
 
   if (days < 0) {
     months -= 1;
-    const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    days += prevMonth.getDate();
+    const previousMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    days += previousMonth.getDate();
   }
 
   if (months < 0) {
@@ -86,84 +34,50 @@ function getAgeParts(dob, now) {
     months += 12;
   }
 
-  return { years, months, days };
+  const totalMs = now.getTime() - dob.getTime();
+  const totalSeconds = Math.floor(totalMs / 1000);
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const totalHours = Math.floor(totalMinutes / 60);
+  const totalDays = Math.floor(totalHours / 24);
+
+  return {
+    years,
+    months,
+    days,
+    totalDays,
+    totalHours,
+    totalMinutes,
+    totalSeconds,
+    dateOfBirth: dob.toISOString().split("T")[0],
+    currentDateTime: now.toISOString()
+  };
 }
 
-function updateLiveAge(dob) {
-  const now = new Date();
-  const diff = now.getTime() - dob.getTime();
-
-  const totalSeconds = Math.floor(diff / 1000);
-  const hours = Math.floor((totalSeconds / 3600) % 24);
-  const minutes = Math.floor((totalSeconds / 60) % 60);
-  const seconds = totalSeconds % 60;
-
-  liveHoursEl.textContent = String(hours).padStart(2, "0");
-  liveMinutesEl.textContent = String(minutes).padStart(2, "0");
-  liveSecondsEl.textContent = String(seconds).padStart(2, "0");
-}
-
-function updateCurrentTime() {
-  const now = new Date();
-  currentDateTimeEl.textContent = now.toLocaleString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
+app.get("/", (req, res) => {
+  res.json({
+    message: "Age Calculator API is running"
   });
-}
+});
 
-function showError(msg) {
-  error.textContent = msg;
-  error.classList.remove("hidden");
-  result.classList.add("hidden");
-}
+app.post("/api/age", (req, res) => {
+  const { dateOfBirth } = req.body;
 
-function hideError() {
-  error.classList.add("hidden");
-}
-async function getAgeFromBackend(dateOfBirth) {
-  const response = await fetch("http://localhost:3000/api/age", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ dateOfBirth })
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || "Something went wrong");
-  }
-
-  return data;
-}
-document.getElementById("calculateBtn").addEventListener("click", async () => {
-  const dob = document.getElementById("dob").value;
-
-  if (!dob) {
-    alert("Please select your date of birth");
-    return;
+  if (!dateOfBirth) {
+    return res.status(400).json({
+      error: "dateOfBirth is required"
+    });
   }
 
   try {
-    const age = await getAgeFromBackend(dob);
-
-    document.getElementById("years").textContent = age.years;
-    document.getElementById("months").textContent = age.months;
-    document.getElementById("days").textContent = age.days;
-
-    document.getElementById("totalDays").textContent = age.totalDays;
-    document.getElementById("totalHours").textContent = age.totalHours;
-    document.getElementById("totalMinutes").textContent = age.totalMinutes;
-    document.getElementById("totalSeconds").textContent = age.totalSeconds;
-
-    document.getElementById("result").classList.remove("hidden");
+    const result = calculateAgeDetailed(dateOfBirth);
+    return res.json(result);
   } catch (error) {
-    alert(error.message);
+    return res.status(400).json({
+      error: error.message
+    });
   }
+});
+
+app.listen(port, () => {
+  console.log(`Age calculator backend running on port ${port}`);
 });
