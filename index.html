@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Age Calculator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Age Calculator</h1>
+      <p class="subtitle">Enter your date of birth and see your exact age.</p>
+
+      <label for="dob">Date of Birth</label>
+      <input type="date" id="dob" />
+
+      <button id="calculateBtn">Calculate Age</button>
+
+      <div id="error" class="hidden"></div>
+
+      <div id="result" class="hidden">
+        <div class="result-box">
+          <h2>Your Age</h2>
+          <div class="age-grid">
+            <div class="age-item">
+              <span id="years">0</span>
+              <small>Years</small>
+            </div>
+            <div class="age-item">
+              <span id="months">0</span>
+              <small>Months</small>
+            </div>
+            <div class="age-item">
+              <span id="days">0</span>
+              <small>Days</small>
+            </div>
+          </div>
+
+          <div class="details">
+            <h3>Detailed Info</h3>
+            <p><strong>Total Days:</strong> <span id="totalDays">0</span></p>
+            <p><strong>Total Hours:</strong> <span id="totalHours">0</span></p>
+            <p><strong>Total Minutes:</strong> <span id="totalMinutes">0</span></p>
+            <p><strong>Total Seconds:</strong> <span id="totalSeconds">0</span></p>
+          </div>
+
+          <div class="live-box">
+            <h3>Live Age Clock</h3>
+            <div class="live-grid">
+              <div>
+                <span id="liveHours">00</span>
+                <small>Hours</small>
+              </div>
+              <div>
+                <span id="liveMinutes">00</span>
+                <small>Minutes</small>
+              </div>
+              <div>
+                <span id="liveSeconds">00</span>
+                <small>Seconds</small>
+              </div>
+            </div>
+          </div>
+
+          <p class="dob-text"><strong>Date of Birth:</strong> <span id="dobDisplay"></span></p>
+          <p class="current-time"><strong>Current Time:</strong> <span id="currentDateTime"></span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
