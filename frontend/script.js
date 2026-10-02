@@ -125,3 +125,45 @@ function showError(msg) {
 function hideError() {
   error.classList.add("hidden");
 }
+async function getAgeFromBackend(dateOfBirth) {
+  const response = await fetch("http://localhost:3000/api/age", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ dateOfBirth })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Something went wrong");
+  }
+
+  return data;
+}
+document.getElementById("calculateBtn").addEventListener("click", async () => {
+  const dob = document.getElementById("dob").value;
+
+  if (!dob) {
+    alert("Please select your date of birth");
+    return;
+  }
+
+  try {
+    const age = await getAgeFromBackend(dob);
+
+    document.getElementById("years").textContent = age.years;
+    document.getElementById("months").textContent = age.months;
+    document.getElementById("days").textContent = age.days;
+
+    document.getElementById("totalDays").textContent = age.totalDays;
+    document.getElementById("totalHours").textContent = age.totalHours;
+    document.getElementById("totalMinutes").textContent = age.totalMinutes;
+    document.getElementById("totalSeconds").textContent = age.totalSeconds;
+
+    document.getElementById("result").classList.remove("hidden");
+  } catch (error) {
+    alert(error.message);
+  }
+});

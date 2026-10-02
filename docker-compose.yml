@@ -1,9 +1,20 @@
 version: '3.8'
 
 services:
-  age-calculator:
-    build: .
-    container_name: age-calculator-app
+  backend:
+    build:
+      context: ./backend
+    container_name: age-calculator-backend
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: age-calculator-frontend
     ports:
       - "8080:80"
+    depends_on:
+      - backend
     restart: unless-stopped
