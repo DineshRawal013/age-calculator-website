@@ -1,83 +1,98 @@
-const express = require("express");
-const cors = require("cors");
 
-const app = express();
-const port = 3000;
+const dobInput = document.getElementById("dob");
+const calculateBtn = document.getElementById("calculateBtn");
+const errorDiv = document.getElementById("error");
+const resultDiv = document.getElementById("result");
 
-app.use(cors());
-app.use(express.json());
+let liveTimer;
 
-function calculateAgeDetailed(dateOfBirth) {
-  const dob = new Date(dateOfBirth);
-  const now = new Date();
+calculateBtn.addEventListener("click", async () => {
+  errorDiv.textContent = "";
+  errorDiv.classList.add("hidden");
+  resultDiv.classList.add("hidden");
 
-  if (Number.isNaN(dob.getTime())) {
-    throw new Error("Invalid date format. Use YYYY-MM-DD");
-  }
-
-  if (dob > now) {
-    throw new Error("Date of birth cannot be in the future.");
-  }
-
-  let years = now.getFullYear() - dob.getFullYear();
-  let months = now.getMonth() - dob.getMonth();
-  let days = now.getDate() - dob.getDate();
-
-  if (days < 0) {
-    months -= 1;
-    const previousMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    days += previousMonth.getDate();
-  }
-
-  if (months < 0) {
-    years -= 1;
-    months += 12;
-  }
-
-  const totalMs = now.getTime() - dob.getTime();
-  const totalSeconds = Math.floor(totalMs / 1000);
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  const totalHours = Math.floor(totalMinutes / 60);
-  const totalDays = Math.floor(totalHours / 24);
-
-  return {
-    years,
-    months,
-    days,
-    totalDays,
-    totalHours,
-    totalMinutes,
-    totalSeconds,
-    dateOfBirth: dob.toISOString().split("T")[0],
-    currentDateTime: now.toISOString()
-  };
-}
-
-app.get("/", (req, res) => {
-  res.json({
-    message: "Age Calculator API is running"
-  });
-});
-
-app.post("/api/age", (req, res) => {
-  const { dateOfBirth } = req.body;
-
-  if (!dateOfBirth) {
-    return res.status(400).json({
-      error: "dateOfBirth is required"
-    });
+  if (!dobInput.value) {
+    errorDiv.textContent = "Please select your date of birth.";
+    errorDiv.classList.remove("hidden");
+    return;
   }
 
   try {
-    const result = calculateAgeDetailed(dateOfBirth);
-    return res.json(result);
-  } catch (error) {
-    return res.status(400).json({
-      error: error.message
-    });
-  }
-});
+    calculateBtn.disabled = true;
+    calculateBtn.textContent = "Calculating...";
 
-app.listen(port, () => {
-  console.log(`Age calculator backend running on port ${port}`);
+    const response = await fetch("http://localhost:3000/api/age", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        dateOfBirth: dobInput.value
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Could not calculate age.");
+    }
+
+    document.getElementById("years").textContent = data.years;
+    document.getElementById("months").textContent = data.months;
+    document.getElementById("days").textContent = data.days;
+
+    document.getElementById("totalDays").textContent =
+      data.totalDays.toLocaleString();
+
+    document.getElementById("totalHours").textContent =
+      data.totalHours.toLocaleString();
+
+    document.getElementById("totalMinutes").textContent =
+      data.totalMinutes.toLocaleString();
+
+    document.getElementById("totalSeconds").textContent =
+      data.totalSeconds.toLocaleString();
+
+    document.getElementById("dobDisplay").textContent =
+      data.dateOfBirth;
+
+    document.getElementById("currentDateTime").textContent =
+      new Date(data.currentDateTime).toLocaleString();
+
+    resultDiv.classList.remove("hidden");
+
+    // Live clock
+    clearInterval(liveTimer);
+
+    function updateLiveClock() {
+      const birthDate = new Date(dobInput.value + "T00:00:00");
+      const elapsed = Math.max(
+        0,
+        Math.floor((Date.now() - birthDate.getTime()) / 1000)
+      );
+
+      document.getElementById("liveHours").textContent =
+        String(Math.floor(elapsed / 3600) % 24).padStart(2, "0");
+
+      document.getElementById("liveMinutes").textContent =
+        String(Math.floor(elapsed / 60) % 60).padStart(2, "0");
+
+      document.getElementById("liveSeconds").textContent =
+        String(elapsed % 60).padStart(2, "0");
+    }
+
+    updateLiveClock();
+    liveTimer = setInterval(updateLiveClock, 1000);
+
+  } catch (error) {
+    errorDiv.textContent =
+      error.message === "Failed to fetch"
+        ? "Cannot connect to the backend. Please start your server."
+        : error.message;
+
+    errorDiv.classList.remove("hidden");
+  } finally {
+    calculateBtn.disabled = false;
+    calculateBtn.textContent = "Calculate Age";
+  }
 });
